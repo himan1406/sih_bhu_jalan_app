@@ -1,0 +1,17 @@
+# Python
+backend/venv/
+backend/__pycache__/
+backend/.env
+*.pyc
+
+# Flutter / Dart
+frontend/build/
+frontend/.dart_tool/
+frontend/.idea/
+frontend/.packages
+frontend/.fvm/
+*.lock
+
+# OS / misc
+.DS_Store
+*.log
