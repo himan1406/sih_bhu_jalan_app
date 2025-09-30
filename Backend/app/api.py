@@ -91,13 +91,37 @@ def fluctuations_daily(district: str, block: str):
     return result
 
 
+from fastapi import HTTPException
+import re
+
 @app.get("/plot-mean-levels")
 def plot_mean_levels_api(district: str, block: str, days: int = 10):
-    """Return a base64 PNG plot of mean water levels for the last N days."""
-    encoded = plot_mean_levels(district, block, days)
+    """Return a base64 PNG plot of mean water levels for the last N days (case-insensitive + cleaned)."""
+
+    # normalize inputs
+    def normalize(text: str) -> str:
+        if not text:
+            return ""
+        text = text.lower().strip()
+        text = re.sub(r"[_\-\s]+", " ", text)   # collapse _, - and multiple spaces
+        return text
+
+    norm_district = normalize(district)
+    norm_block = normalize(block)
+
+    print(f"🔎 Normalized request → District={norm_district}, Block={norm_block}")
+
+    # Call your existing function
+    encoded = plot_mean_levels(norm_district, norm_block, days)
+
     if not encoded:
-        raise HTTPException(status_code=404, detail="No data found for mean levels")
+        raise HTTPException(
+            status_code=404,
+            detail=f"No data found for district='{district}', block='{block}'"
+        )
+
     return {"plot_base64": encoded}
+
 
 
 # -------------------

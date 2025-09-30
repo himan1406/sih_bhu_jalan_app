@@ -21,6 +21,7 @@ class _GroundWaterPageState extends State<GroundWaterPage> {
   bool _loadingDistricts = true;
   bool _loadingBlocks = false;
   String? _errorMsg;
+  bool _success = false;
 
   @override
   void initState() {
@@ -29,22 +30,12 @@ class _GroundWaterPageState extends State<GroundWaterPage> {
   }
 
   Future<void> _fetchDistricts() async {
-    setState(() {
-      _loadingDistricts = true;
-      _errorMsg = null;
-    });
-
     try {
       final districts =
       await ApiService.getDistricts().timeout(const Duration(seconds: 10));
       setState(() {
         _districts = districts;
         _loadingDistricts = false;
-      });
-    } on TimeoutException {
-      setState(() {
-        _loadingDistricts = false;
-        _errorMsg = "⚠️ Request timed out. Please retry.";
       });
     } catch (e) {
       setState(() {
@@ -60,20 +51,14 @@ class _GroundWaterPageState extends State<GroundWaterPage> {
       _loadingBlocks = true;
       _blocks = [];
       _selectedBlock = null;
-      _errorMsg = null;
     });
 
     try {
-      final blocks =
-      await ApiService.getBlocks(district).timeout(const Duration(seconds: 10));
+      final blocks = await ApiService.getBlocks(district)
+          .timeout(const Duration(seconds: 10));
       setState(() {
         _blocks = blocks;
         _loadingBlocks = false;
-      });
-    } on TimeoutException {
-      setState(() {
-        _loadingBlocks = false;
-        _errorMsg = "⚠️ Block request timed out.";
       });
     } catch (e) {
       setState(() {
@@ -91,28 +76,29 @@ class _GroundWaterPageState extends State<GroundWaterPage> {
     bool isLoading = false,
   }) {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+      margin: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      height: 70,
+      height: 65,
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        color: Colors.black.withOpacity(0.25),
+        borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.15),
-            blurRadius: 6,
+            color: Colors.black.withOpacity(0.25),
+            blurRadius: 8,
             offset: const Offset(2, 4),
           ),
         ],
       ),
       child: isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: Colors.white))
           : DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          hint: Text(label),
+          hint: Text(label, style: const TextStyle(color: Colors.white70)),
           value: value,
           isExpanded: true,
-          icon: const Icon(Icons.arrow_drop_down),
+          dropdownColor: const Color(0xFF1E3C72),
+          icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
           onChanged: (val) {
             if (items.isNotEmpty) {
               onChanged(val);
@@ -132,7 +118,8 @@ class _GroundWaterPageState extends State<GroundWaterPage> {
             child: Text(
               e,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 16),
+              style: const TextStyle(
+                  fontSize: 16, color: Colors.white),
             ),
           ))
               .toList(),
@@ -144,54 +131,76 @@ class _GroundWaterPageState extends State<GroundWaterPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          Image.asset("assets/cgwb_bg.png", fit: BoxFit.cover),
-          Container(color: Colors.black.withOpacity(0.3)),
-
-          SingleChildScrollView(
-            child: Column(
-              children: [
-                const SizedBox(height: 80),
-
-                // Logo
-                Image.asset("assets/cgwb_logo.png", width: 100, height: 140),
-                const SizedBox(height: 20),
-
-                const Text(
-                  "Groundwater Data",
-                  style: TextStyle(
-                    fontFamily: "Montserrat",
-                    fontWeight: FontWeight.bold,
-                    fontSize: 24,
-                    color: Colors.white,
+      body: Container(
+        height: double.infinity,
+        width: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF1E3C72), Color(0xFF2A5298)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 30), // 🔹 Move content higher
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Logo + Title
+                  Image.asset("assets/cgwb_logo.png", width: 100, height: 120),
+                  const SizedBox(height: 10),
+                  const Text(
+                    "BHU-JALAN",
+                    style: TextStyle(
+                      fontFamily: "Montserrat",
+                      fontWeight: FontWeight.w800,
+                      fontSize: 26,
+                      color: Colors.white,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 40),
+                  const SizedBox(height: 4),
+                  const Text(
+                    "Bharat Hydro Underground\nJal Analytics Network",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: "Montserrat",
+                      fontWeight: FontWeight.w400,
+                      fontSize: 14,
+                      color: Colors.white70,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
 
-                // State
-                _buildDropdown(
-                  label: "Select State",
-                  value: _state,
-                  items: [_state],
-                  onChanged: (_) {},
-                ),
-
-                // Districts with error handling
-                if (_errorMsg != null)
-                  Column(
-                    children: [
-                      Text(_errorMsg!,
-                          style: const TextStyle(color: Colors.red)),
-                      const SizedBox(height: 10),
-                      ElevatedButton(
-                        onPressed: _fetchDistricts,
-                        child: const Text("Retry"),
+                  // Section Title
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 8, horizontal: 24),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      "GROUNDWATER DATA",
+                      style: TextStyle(
+                        fontFamily: "Montserrat",
+                        fontWeight: FontWeight.w900,
+                        fontSize: 20,
+                        color: Colors.white,
+                        letterSpacing: 1.2,
                       ),
-                    ],
-                  )
-                else
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+
+                  // Dropdowns
+                  _buildDropdown(
+                    label: "Select State",
+                    value: _state,
+                    items: [_state],
+                    onChanged: (_) {},
+                  ),
                   _buildDropdown(
                     label: "Select District",
                     value: _selectedDistrict,
@@ -204,50 +213,66 @@ class _GroundWaterPageState extends State<GroundWaterPage> {
                       }
                     },
                   ),
-
-                // Blocks
-                _buildDropdown(
-                  label: "Select Block",
-                  value: _selectedBlock,
-                  items: _blocks,
-                  isLoading: _loadingBlocks,
-                  onChanged: (value) {
-                    setState(() => _selectedBlock = value);
-                  },
-                ),
-
-                const SizedBox(height: 40),
-
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 16, horizontal: 40),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                  _buildDropdown(
+                    label: "Select Block",
+                    value: _selectedBlock,
+                    items: _blocks,
+                    isLoading: _loadingBlocks,
+                    onChanged: (value) {
+                      setState(() => _selectedBlock = value);
+                    },
                   ),
-                  onPressed: _selectedDistrict != null && _selectedBlock != null
-                      ? () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => AnalyticsPage(
-                          district: _selectedDistrict!,
-                          block: _selectedBlock!,
+                  const SizedBox(height: 30),
+
+                  // Button / Success Animation
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 500),
+                    child: _success
+                        ? const Icon(Icons.check_circle,
+                        key: ValueKey("success"),
+                        color: Colors.greenAccent,
+                        size: 60)
+                        : ElevatedButton(
+                      key: const ValueKey("button"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF00C6FF),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 16, horizontal: 40),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                    );
-                  }
-                      : null,
-                  child: const Text("Get Data",
-                      style: TextStyle(fontSize: 18)),
-                ),
-
-                const SizedBox(height: 50),
-              ],
+                      onPressed: _selectedDistrict != null &&
+                          _selectedBlock != null
+                          ? () {
+                        setState(() => _success = true);
+                        Future.delayed(const Duration(seconds: 1),
+                                () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => AnalyticsPage(
+                                    district: _selectedDistrict!,
+                                    block: _selectedBlock!,
+                                  ),
+                                ),
+                              ).then((_) {
+                                setState(() => _success = false);
+                              });
+                            });
+                      }
+                          : null,
+                      child: const Text("Get Data",
+                          style: TextStyle(
+                              fontSize: 18, color: Colors.white)),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }

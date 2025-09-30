@@ -16,7 +16,7 @@ class MyApp extends StatelessWidget {
       title: 'BHU-JALAN',
       theme: ThemeData(
         primarySwatch: Colors.blue,
-        fontFamily: "Montserrat", // ✅ Global font
+        fontFamily: "Montserrat", // ✅ global font
       ),
       home: const SplashScreen(),
       routes: {
@@ -52,13 +52,13 @@ class _SplashScreenState extends State<SplashScreen>
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
 
-    _scaleAnim = Tween<double>(begin: 0.8, end: 1.0).animate(
+    _scaleAnim = Tween<double>(begin: 0.9, end: 1.0).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
     );
 
     _controller.forward();
 
-    // After 3 seconds → go to Dashboard
+    // Navigate after 3s
     Timer(const Duration(seconds: 3), () {
       if (mounted) {
         Navigator.pushReplacementNamed(context, '/dashboard');
@@ -75,54 +75,73 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          Image.asset("assets/cgwb_bg.png", fit: BoxFit.cover),
-          Container(color: Colors.black.withOpacity(0.3)),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF1E3C72), Color(0xFF2A5298)], // 🔹 pro blue gradient
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Center(
+          child: FadeTransition(
+            opacity: _fadeAnim,
+            child: ScaleTransition(
+              scale: _scaleAnim,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // ✅ circular logo card with shadow
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 15,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Image.asset(
+                      "assets/cgwb_logo.png",
+                      width: 100,
+                      height: 100,
+                    ),
+                  ),
 
-          Center(
-            child: FadeTransition(
-              opacity: _fadeAnim,
-              child: ScaleTransition(
-                scale: _scaleAnim,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Image.asset("assets/cgwb_logo.png", width: 120, height: 180),
-                    const SizedBox(height: 20),
-                    Text(
-                      "BHU-JALAN",
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 28,
-                        color: Colors.white,
-                        shadows: [
-                          Shadow(
-                            offset: Offset(2, 2),
-                            blurRadius: 4,
-                            color: Colors.black.withOpacity(0.5),
-                          ),
-                        ],
-                      ),
+                  const SizedBox(height: 30),
+
+                  const Text(
+                    "BHU-JALAN",
+                    style: TextStyle(
+                      fontFamily: "Montserrat",
+                      fontWeight: FontWeight.w800,
+                      fontSize: 28,
+                      color: Colors.white,
+                      letterSpacing: 1.2,
                     ),
-                    const SizedBox(height: 10),
-                    const Text(
-                      "Bharat Hydro Underground\nJal Analytics Network",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w400,
-                        fontSize: 16,
-                        color: Colors.white,
-                        letterSpacing: 1,
-                      ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  Text(
+                    "Bharat Hydro Underground\nJal Analytics Network",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: "Montserrat",
+                      fontWeight: FontWeight.w400,
+                      fontSize: 16,
+                      color: Colors.white.withOpacity(0.9),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }

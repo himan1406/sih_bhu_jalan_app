@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:auto_size_text/auto_size_text.dart';
 import 'services/api_services.dart';
 import 'ComparisonPage.dart';
 
@@ -10,20 +11,42 @@ class ComparisonSelectionPage extends StatefulWidget {
       _ComparisonSelectionPageState();
 }
 
-class _ComparisonSelectionPageState extends State<ComparisonSelectionPage> {
+class _ComparisonSelectionPageState extends State<ComparisonSelectionPage>
+    with TickerProviderStateMixin {
   List<String> _districts = [];
   List<String> _blocks = [];
   String? _selectedDistrict;
   String? _selectedBlock;
 
   final List<Map<String, String>> _selectedPairs = [];
+  final GlobalKey<AnimatedListState> _listKey = GlobalKey<AnimatedListState>();
+
   bool _loadingDistricts = true;
   bool _loadingBlocks = false;
+
+  late AnimationController _btnController;
+  late AnimationController _shimmerController;
+  late Animation<double> _scaleAnim;
 
   @override
   void initState() {
     super.initState();
     _fetchDistricts();
+
+    _btnController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+      lowerBound: 0.95,
+      upperBound: 1.0,
+      value: 1.0,
+    );
+
+    _shimmerController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+
+    _scaleAnim = CurvedAnimation(parent: _btnController, curve: Curves.easeOut);
   }
 
   Future<void> _fetchDistricts() async {
@@ -65,14 +88,23 @@ class _ComparisonSelectionPageState extends State<ComparisonSelectionPage> {
         "block": _selectedBlock!,
       };
 
-      // ✅ Prevent duplicates
       if (!_selectedPairs.contains(newPair)) {
-        setState(() => _selectedPairs.add(newPair));
+        setState(() {
+          _selectedPairs.add(newPair);
+        });
+        _listKey.currentState?.insertItem(_selectedPairs.length - 1);
       }
     }
   }
 
   void _removePair(int index) {
+    final removedItem = _selectedPairs[index];
+    _listKey.currentState?.removeItem(
+      index,
+          (context, animation) =>
+          _buildAnimatedPair(removedItem, index, animation),
+      duration: const Duration(milliseconds: 300),
+    );
     setState(() {
       _selectedPairs.removeAt(index);
     });
@@ -86,150 +118,274 @@ class _ComparisonSelectionPageState extends State<ComparisonSelectionPage> {
     bool isLoading = false,
   }) {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 12),
+      margin: const EdgeInsets.symmetric(vertical: 14),
       padding: const EdgeInsets.symmetric(horizontal: 16),
+      height: 70,
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        color: const Color(0xFF0B1E3F).withOpacity(0.85),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withOpacity(0.2)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withOpacity(0.25),
             blurRadius: 6,
             offset: const Offset(2, 4),
           ),
         ],
       ),
       child: isLoading
-          ? const Padding(
-        padding: EdgeInsets.all(16),
-        child: Center(child: CircularProgressIndicator()),
-      )
+          ? const Center(child: CircularProgressIndicator(color: Colors.white))
           : DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          hint: Text(label),
+          dropdownColor: const Color(0xFF0B1E3F),
+          hint: Text(label, style: const TextStyle(color: Colors.white70)),
           value: value,
+          icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
           isExpanded: true,
           onChanged: onChanged,
           items: items
-              .map((e) =>
-              DropdownMenuItem<String>(value: e, child: Text(e)))
+              .map((e) => DropdownMenuItem<String>(
+            value: e,
+            child: Text(
+              e,
+              style: const TextStyle(color: Colors.white),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ))
               .toList(),
         ),
       ),
     );
   }
 
+  Widget _buildAnimatedPair(
+      Map<String, String> pair, int index, Animation<double> animation) {
+    return SizeTransition(
+      sizeFactor: animation,
+      child: FadeTransition(
+        opacity: animation,
+        child: Container(
+          margin: const EdgeInsets.symmetric(vertical: 6),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0B1E3F).withOpacity(0.85),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  "${pair['district']} - ${pair['block']}",
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete, color: Colors.redAccent),
+                onPressed: () => _removePair(index),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _btnController.dispose();
+    _shimmerController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          Image.asset("assets/cgwb_bg.png", fit: BoxFit.cover),
-          Container(color: Colors.black.withOpacity(0.3)),
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF1E3C72), Color(0xFF2A5298)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 20),
 
-          SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-                const SizedBox(height: 40),
-                Image.asset("assets/cgwb_logo.png", width: 100, height: 140),
-                const SizedBox(height: 10),
-                const Text(
-                  "Comparison Dashboard",
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    letterSpacing: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 30),
+                      Image.asset("assets/cgwb_logo.png",
+                          width: 110, height: 150),
+                      const SizedBox(height: 10),
+                      const Text(
+                        "BHU-JALAN",
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        "Bharat Hydro Underground\nJal Analytics Network",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w400,
+                          color: Colors.white70,
+                        ),
+                      ),
 
-                // District dropdown
-                _buildDropdown(
-                  label: "Select District",
-                  value: _selectedDistrict,
-                  items: _districts,
-                  isLoading: _loadingDistricts,
-                  onChanged: (val) {
-                    setState(() => _selectedDistrict = val);
-                    if (val != null) _fetchBlocks(val);
-                  },
-                ),
+                      const SizedBox(height: 30),
 
-                // Block dropdown
-                _buildDropdown(
-                  label: "Select Block",
-                  value: _selectedBlock,
-                  items: _blocks,
-                  isLoading: _loadingBlocks,
-                  onChanged: (val) => setState(() => _selectedBlock = val),
-                ),
-
-                const SizedBox(height: 20),
-
-                ElevatedButton.icon(
-                  onPressed: _addPair,
-                  icon: const Icon(Icons.add),
-                  label: const Text("Add Location"),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 14, horizontal: 24),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // Selected Pairs
-                if (_selectedPairs.isNotEmpty)
-                  Column(
-                    children: _selectedPairs.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final pair = entry.value;
-                      return Card(
-                        margin: const EdgeInsets.symmetric(vertical: 6),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        child: ListTile(
-                          title: Text("${pair['district']} - ${pair['block']}"),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () => _removePair(index),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 6, horizontal: 20),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: AutoSizeText(
+                          "COMPARISON DASHBOARD",
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                            letterSpacing: 1.5,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+
+                      const SizedBox(height: 30),
+
+                      _buildDropdown(
+                        label: "Select District",
+                        value: _selectedDistrict,
+                        items: _districts,
+                        isLoading: _loadingDistricts,
+                        onChanged: (val) {
+                          setState(() => _selectedDistrict = val);
+                          if (val != null) _fetchBlocks(val);
+                        },
+                      ),
+
+                      _buildDropdown(
+                        label: "Select Block",
+                        value: _selectedBlock,
+                        items: _blocks,
+                        isLoading: _loadingBlocks,
+                        onChanged: (val) => setState(() => _selectedBlock = val),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      ElevatedButton.icon(
+                        onPressed: _addPair,
+                        icon: const Icon(Icons.add),
+                        label: const Text("Add Location"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blueAccent,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 14, horizontal: 24),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      if (_selectedPairs.isNotEmpty)
+                        AnimatedList(
+                          key: _listKey,
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          initialItemCount: _selectedPairs.length,
+                          itemBuilder: (context, index, animation) {
+                            final pair = _selectedPairs[index];
+                            return _buildAnimatedPair(pair, index, animation);
+                          },
+                        ),
+
+                      const SizedBox(height: 30),
+                    ],
+                  ),
+                ),
+              ),
+
+              // 🔹 Compare Button pinned at bottom
+              Padding(
+                padding:
+                const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                child: GestureDetector(
+                  onTapDown: (_) => _btnController.reverse(),
+                  onTapUp: (_) {
+                    _btnController.forward();
+                    if (_selectedPairs.isNotEmpty) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              ComparisonPage(selectedPairs: _selectedPairs),
                         ),
                       );
-                    }).toList(),
-                  ),
-
-                const SizedBox(height: 30),
-
-                ElevatedButton(
-                  onPressed: _selectedPairs.isEmpty
-                      ? null
-                      : () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ComparisonPage(
-                            selectedPairs: _selectedPairs),
-                      ),
-                    );
+                    }
                   },
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 16, horizontal: 32),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                  child: ScaleTransition(
+                    scale: _scaleAnim,
+                    child: AnimatedBuilder(
+                      animation: _shimmerController,
+                      builder: (context, child) {
+                        final shimmerValue =
+                            0.5 + (0.5 * _shimmerController.value);
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 16, horizontal: 40),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.blueAccent.withOpacity(shimmerValue),
+                                Colors.lightBlueAccent.withOpacity(0.8),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(14),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.3),
+                                blurRadius: 8,
+                                offset: const Offset(2, 4),
+                              )
+                            ],
+                          ),
+                          child: const Text(
+                            "COMPARE",
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   ),
-                  child: const Text("Compare"),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

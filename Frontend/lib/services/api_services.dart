@@ -3,7 +3,8 @@ import 'dart:async'; // 👈 needed for TimeoutException
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  static const String baseUrl = "http://10.0.2.2:8000";
+  static const String baseUrl = "http://192.168.1.15:8000";
+
 
   // 🔹 Helper: make GET request with timeout + error handling
   static Future<http.Response> _get(String url) async {
